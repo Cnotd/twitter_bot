@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Env & secrets
+.env
+
+# Logs & data
+logs/
+*.log
+tw_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Old Hyperliquid bot (not part of this project)
+config.py
+main.py
+models/
+risk_manager.py
+setup_wizard.py
+requirements.txt

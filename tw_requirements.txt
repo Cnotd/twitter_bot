@@ -1,0 +1,23 @@
+# Twitter → Lark 监测推送系统 依赖
+# =====================================
+
+# HTTP 客户端
+aiohttp>=3.9.0
+
+# 日志
+loguru>=0.7.2
+
+# 数据处理
+numpy>=1.26.0
+pandas>=2.2.0
+
+# 环境变量
+python-dotenv>=1.0.0
+
+# （可选）Twitter API SDK
+# tweepy>=4.14.0
+
+# （可选）情感分析增强
+# textblob>=0.17.0
+# transformers>=4.30.0
+# torch>=2.0.0

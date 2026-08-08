@@ -304,18 +304,44 @@ class SystemConfig:
     default_scan_window_hours: int = 24
 
 
+# ==================== Grok API 配置 ====================
+@dataclass
+class GrokConfig:
+    api_key: str = os.getenv("GROK_API_KEY", "")
+    base_url: str = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
+    model: str = os.getenv("GROK_MODEL", "grok-3-beta")
+    max_tokens: int = 4096
+    temperature: float = 0.3
+    timeout_sec: int = 120
+
+
+# ==================== 日报配置 ====================
+@dataclass
+class DailyReportConfig:
+    """每日日报配置"""
+    # 北京时区 (UTC+8)
+    bjt_offset_hours: int = 8
+    # 窗口：前一日 09:00 → 当日 09:00 (BJT)
+    window_start_hour: int = 9
+    # Grok 输出最大中文字符（约 2000-3000 字）
+    report_max_chars: int = 3200
+
+
 # ==================== 主配置 ====================
 @dataclass
 class TWConfig:
     twitter: TwitterConfig = field(default_factory=TwitterConfig)
     lark: LarkConfig = field(default_factory=LarkConfig)
     system: SystemConfig = field(default_factory=SystemConfig)
+    grok: GrokConfig = field(default_factory=GrokConfig)
+    daily_report: DailyReportConfig = field(default_factory=DailyReportConfig)
     poll_interval_sec: int = 120
     
     def to_dict(self) -> Dict:
         return {
             "twitter_configured": bool(self.twitter.bearer_token),
             "lark_configured": bool(self.lark.webhook_url),
+            "grok_configured": bool(self.grok.api_key),
             "accounts_monitored": len(DEDUPED_ACCOUNTS),
             "poll_interval": self.poll_interval_sec,
             "push_threshold": self.lark.push_threshold,

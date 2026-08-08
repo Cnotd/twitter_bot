@@ -441,6 +441,37 @@ class NitterFallback:
         return results
 
 
+    # ==================== 单用户便捷方法 ====================
+    async def fetch_user_tweets(self, username: str, max_results: int = 5) -> List[Tweet]:
+        """获取单个用户的最新推文（带 Nitter 降级）"""
+        username = username.lstrip("@")
+        try:
+            user = await self.get_user_by_username(username)
+            if user and user.get("id"):
+                return await self.get_user_timeline(user["id"], max_results=max_results)
+        except Exception:
+            pass
+        return []
+
+    async def fetch_user_tweets_fallback(
+        self, username: str, max_results: int = 5
+    ) -> List[Tweet]:
+        """获取单个用户推文（API+Nitter 双重保障）"""
+        username = username.lstrip("@")
+        # 先尝试 API
+        tweets = await self.fetch_user_tweets(username, max_results)
+        if tweets:
+            return tweets
+        # 降级 Nitter
+        if not hasattr(self, "_nitter"):
+            self._nitter = NitterFallback()
+            await self._nitter.start()
+        try:
+            return await self._nitter.get_user_tweets(username, max_results)
+        except Exception:
+            return []
+
+
 async def test():
     client = TwitterClient()
     await client.start()

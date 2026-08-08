@@ -712,5 +712,66 @@ def test_scoring_engine():
     print(f"S级:{full['summary']['s_count']} A级:{full['summary']['a_count']} B级:{full['summary']['b_count']}")
 
 
+def dummy_tweets_for_test() -> List[Tweet]:
+    """为 daily_report 模块生成测试推文"""
+    now = datetime.now(timezone.utc)
+    return [
+        Tweet(
+            tweet_id="test_d1", author_id="d1",
+            author_username="HyperliquidX", author_name="Hyperliquid",
+            author_verified=True, author_followers=500000,
+            text="HyperCore mainnet is now live. Full EVM compatibility on Hyperliquid L1."
+                 " Developers can deploy Solidity contracts today. docs.hyperliquid.xyz",
+            created_at=now - timedelta(hours=3),
+            likes=12000, retweets=4500, replies=800, has_link=True, lang="en",
+        ),
+        Tweet(
+            tweet_id="test_d2", author_id="d2",
+            author_username="HYPERDailyTK", author_name="HYPER Daily",
+            author_verified=False, author_followers=25000,
+            text="BREAKING: Hyperliquid 24h volume hits $2.8B — new all-time high."
+                 " Perps dominance continues. Data via @HypurrScan",
+            created_at=now - timedelta(hours=6),
+            likes=1500, retweets=400, replies=120, has_link=True, lang="en",
+        ),
+        Tweet(
+            tweet_id="test_d3", author_id="d3",
+            author_username="hyperlendx", author_name="Hyperlend",
+            author_verified=False, author_followers=8000,
+            text="Hyperlend TVL surpasses $50M on Hyperliquid. New lending pools for"
+                 " HYPE and stHYPE now live with competitive APY.",
+            created_at=now - timedelta(hours=8),
+            likes=450, retweets=120, replies=60, has_link=True, lang="en",
+        ),
+        Tweet(
+            tweet_id="test_d4", author_id="d4",
+            author_username="tradexyz", author_name="TradeXYZ",
+            author_verified=False, author_followers=3000,
+            text="We just integrated HIP-3! Trade on our frontend with zero gas fees"
+                 " for the first week. Powered by HyperCore.",
+            created_at=now - timedelta(hours=2),
+            likes=220, retweets=60, replies=40, has_link=True, lang="en",
+        ),
+        Tweet(
+            tweet_id="test_d5", author_id="d5",
+            author_username="ThinkingUSD", author_name="ThinkingUSD",
+            author_verified=False, author_followers=30000,
+            text="Thread: Why Hyperliquid's orderbook model is eating CEX market share 🧵"
+                 " (1/12) The data is clear — HLP liquidity is deeper than most tier-2 CEXs.",
+            created_at=now - timedelta(hours=10),
+            likes=3500, retweets=900, replies=250, has_link=True, lang="en",
+        ),
+        Tweet(
+            tweet_id="test_d6", author_id="d6",
+            author_username="blknoiz06", author_name="blknoiz06",
+            author_verified=True, author_followers=150000,
+            text="Hyperliquid is quietly building the most capital-efficient L1."
+                 " Orderbook + EVM = the meta for 2027.",
+            created_at=now - timedelta(hours=14),
+            likes=5000, retweets=1200, replies=300, lang="en",
+        ),
+    ]
+
+
 if __name__ == "__main__":
     test_scoring_engine()

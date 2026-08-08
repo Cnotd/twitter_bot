@@ -381,6 +381,137 @@ class LarkPusher:
             payload = self._sign(payload)
         return await self._post(webhook, payload)
 
+    # ==================== 每日日报推送 ====================
+    async def push_daily_report(
+        self,
+        report: str,
+        window_label: str = "",
+        stats: Dict = None,
+        dry_run: bool = False,
+    ) -> Dict:
+        """
+        推送 Grok 生成的每日情报日报
+        长文 Markdown → 分割后逐段发送到飞书群
+        """
+        webhook = self.cfg.webhook_url
+        if not webhook:
+            logger.error("未配置飞书 Webhook，无法推送日报")
+            return {"ok": False, "reason": "no webhook"}
+
+        stats = stats or {}
+        result = {"ok": True, "parts": 0, "errors": 0}
+
+        if dry_run:
+            logger.info(f"[DRY RUN] 日报: {len(report)} 字符, 窗口: {window_label}")
+            return result
+
+        # 先发概览卡片
+        overview_card = self._build_daily_overview_card(
+            report=report,
+            window_label=window_label,
+            stats=stats,
+        )
+        ok = await self._post(webhook, {"msg_type": "interactive", "card": overview_card})
+        if ok:
+            result["parts"] += 1
+        else:
+            result["errors"] += 1
+
+        # 长文分割发送（每个 text 消息最多 2000 字符）
+        chunks = self._split_markdown(report, max_chars=1800)
+        for i, chunk in enumerate(chunks):
+            prefix = f"[{i + 1}/{len(chunks)}] " if len(chunks) > 1 else ""
+            payload = {
+                "msg_type": "text",
+                "content": {"text": prefix + chunk},
+            }
+            ok = await self._post(webhook, payload)
+            if ok:
+                result["parts"] += 1
+            else:
+                result["errors"] += 1
+            # 分段发送间隔，避免频率限制
+            await asyncio.sleep(0.5)
+
+        logger.info(f"日报推送: {result['parts']}段, 错误{result['errors']}")
+        return result
+
+    def _build_daily_overview_card(
+        self, report: str, window_label: str, stats: Dict = None,
+    ) -> Dict:
+        """构建日报概览卡片"""
+        stats = stats or {}
+        s_count = stats.get("s_count", 0)
+        a_count = stats.get("a_count", 0)
+        b_count = stats.get("b_count", 0)
+        total = stats.get("total_tweets", 0)
+
+        # 提取一句结论(第一个 ### 之后的段落)
+        conclusion = "详见下文"
+        if "###" in report:
+            for part in report.split("###"):
+                part = part.strip()
+                if "一句话结论" in part or "一句结论" in part:
+                    lines = part.split("\n", 1)
+                    if len(lines) > 1:
+                        conclusion = lines[1].strip()[:200]
+                    break
+
+        return {
+            "config": {"wide_screen_mode": True},
+            "header": {
+                "title": {
+                    "tag": "plain_text",
+                    "content": "🦉 Hyperliquid X 每日情报"
+                },
+                "template": "blue",
+            },
+            "elements": [
+                {
+                    "tag": "div",
+                    "text": {
+                        "tag": "lark_md",
+                        "content": f"**📌 覆盖窗口**: {window_label}\n**📊 统计**: {total}条采集 | S:{s_count} A:{a_count} B:{b_count} | Grok 生成"
+                    }
+                },
+                {"tag": "hr"},
+                {
+                    "tag": "div",
+                    "text": {
+                        "tag": "lark_md",
+                        "content": f"**💡 一句话结论**\n{conclusion}"
+                    }
+                },
+                {"tag": "hr"},
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "🦉 Owly X 情报系统 · 每日自动生成 · 请交叉核验重要信息 | 全文见后续消息"
+                        }
+                    ]
+                }
+            ]
+        }
+
+    def _split_markdown(self, text: str, max_chars: int = 1800) -> List[str]:
+        """按自然段落分割长文本"""
+        chunks = []
+        current = ""
+
+        for line in text.split("\n"):
+            if len(current) + len(line) + 1 > max_chars and current:
+                chunks.append(current.strip())
+                current = line + "\n"
+            else:
+                current += line + "\n"
+
+        if current.strip():
+            chunks.append(current.strip())
+
+        return chunks
+
     # ==================== 工具方法 ====================
     def _sign(self, payload: Dict) -> Dict:
         secret = self.cfg.webhook_secret

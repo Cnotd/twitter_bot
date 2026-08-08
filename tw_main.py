@@ -46,6 +46,7 @@ from scoring_engine import (
     ScoringEngine, IntelReportBuilder, ScoredTweet,
 )
 from lark_pusher import LarkPusher
+from daily_report import DailyReportGenerator
 
 
 class OwlyIntelBot:
@@ -250,6 +251,38 @@ class OwlyIntelBot:
         
         return report
 
+    # ==================== 模式三：每日日报 ====================
+    async def gen_daily_report(self, push: bool = True) -> Dict:
+        """
+        每日日报模式：按北京时间窗口（前日09:00 → 当日09:00）
+        采集 → 评分 → Grok 生成中文日报 → 飞书推送
+        """
+        logger.info("=" * 60)
+        logger.info("📋 每日情报日报 — Grok 生成模式")
+        logger.info("=" * 60)
+
+        generator = DailyReportGenerator()
+        result = await generator.generate_report()
+
+        logger.info(f"日报生成完成: {len(result['report'])} 字符")
+        logger.info(
+            f"S:{result['stats']['s_count']} A:{result['stats']['a_count']} "
+            f"B:{result['stats']['b_count']} | 共{result['stats']['total_tweets']}条推文"
+        )
+
+        if push and self.pusher:
+            try:
+                push_result = await self.pusher.push_daily_report(
+                    report=result["report"],
+                    window_label=result["window_label"],
+                    stats=result["stats"],
+                )
+                logger.info(f"日报推送: {'成功' if push_result.get('ok') else '失败'}")
+            except Exception as e:
+                logger.error(f"日报推送失败: {e}")
+
+        return result
+
     # ==================== 守护模式 ====================
     async def daemon(self, interval: int = None):
         """持续轮询守护模式"""
@@ -405,6 +438,8 @@ async def main():
                         help="事件触发模式（仅检查 P1/P2 重要账号）")
     parser.add_argument("--daemon", "-d", action="store_true",
                         help="持续轮询守护模式")
+    parser.add_argument("--daily-report", "-r", action="store_true",
+                        help="每日日报模式（BJ时间窗 + Grok 生成）")
     parser.add_argument("--hours", type=int, default=24,
                         help="扫描时间窗口（小时），默认24")
     parser.add_argument("--interval", type=int,
@@ -424,6 +459,8 @@ async def main():
         
         if args.daemon:
             await bot.daemon(interval=args.interval)
+        elif args.daily_report:
+            await bot.gen_daily_report(push=not args.no_push)
         elif args.trigger:
             await bot.trigger_check(push=not args.no_push)
         else:
